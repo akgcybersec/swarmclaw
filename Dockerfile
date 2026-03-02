@@ -14,7 +14,7 @@ RUN npm ci
 COPY . .
 
 # Build
-RUN npm run build
+RUN SWARMCLAW_BUILD_MODE=1 npm run build:ci
 
 # Production
 FROM node:20-slim AS runner
