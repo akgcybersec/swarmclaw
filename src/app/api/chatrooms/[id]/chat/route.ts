@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
-import { genId } from '@/lib/id'
 import { loadChatrooms, saveChatrooms, loadAgents } from '@/lib/server/storage'
 import { notify } from '@/lib/server/ws-hub'
 import { notFound } from '@/lib/server/collection-helpers'
+import { genId } from '@/lib/id'
+import { extractEmbeddedMedia } from '@/lib/server/connectors/manager'
+import path from 'path'
 import { streamAgentChat } from '@/lib/server/stream-agent-chat'
 import { getProvider } from '@/lib/providers'
 import {
@@ -45,9 +47,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // Persist incoming message
   const senderName = senderId === 'user' ? 'You' : (agents[senderId]?.name || senderId)
   let mentions = parseMentions(text, agents, chatroom.agentIds)
-  // Auto-address: if enabled and no explicit mentions, address all agents
-  if (chatroom.autoAddress && mentions.length === 0) {
-    mentions = [...chatroom.agentIds]
+  // Auto-address: if enabled and no explicit mentions, address all agents except sender
+  if (chatroom.autoAddress && mentions.length === 0 && senderId !== 'user') {
+    mentions = chatroom.agentIds.filter(id => id !== senderId)
   }
   const userMessage: ChatroomMessage = {
     id: genId(),
@@ -133,18 +135,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             const agentSystemPrompt = buildAgentSystemPromptForChatroom(agent)
             const chatroomContext = buildChatroomSystemPrompt(freshChatroom, agents, agent.id)
             const fullSystemPrompt = [agentSystemPrompt, chatroomContext].filter(Boolean).join('\n\n')
-            const history = buildHistoryForAgent(freshChatroom, agent.id, imagePath, attachedFiles)
+            const history = buildHistoryForAgent(freshChatroom, agent.id, imagePath, [])
 
             // Use enriched context message for chained agents, or reply context + original text
             const messageForAgent = item.contextMessage || (replyContext + text)
 
             let fullText = ''
             let agentError = ''
+            const attachedFiles: string[] = []
+            
             const result = await streamAgentChat({
               session: syntheticSession,
               message: messageForAgent,
               imagePath,
-              attachedFiles,
+              attachedFiles: [], // Pass empty array since we're building history separately
               apiKey,
               systemPrompt: fullSystemPrompt,
               write: (raw: string) => {
@@ -157,6 +161,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
                       fullText += parsed.text
                       writeEvent({ t: 'd', text: parsed.text, agentId: agent.id, agentName: agent.name })
                     } else if (parsed.t === 'tool_call' || parsed.t === 'tool_result') {
+                      // Capture send_file tool results for attachment processing
+                      if (parsed.t === 'tool_result' && parsed.toolName === 'send_file' && parsed.toolOutput) {
+                        const output = parsed.toolOutput
+                        if (typeof output === 'string') {
+                          const uploadMatch = output.match(/\/api\/uploads\/([^\s)\]]+)/)
+                          if (uploadMatch) {
+                            attachedFiles.push(uploadMatch[1])
+                          }
+                        }
+                      }
                       writeEvent({ ...parsed, agentId: agent.id, agentName: agent.name })
                     } else if (parsed.t === 'err' && parsed.text) {
                       agentError = parsed.text
@@ -180,15 +194,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
             if (responseText.trim()) {
               const newMentions = parseMentions(responseText, agents, freshChatroom.agentIds)
+              
+              // Extract file attachments from the final response text (send_file returns markdown links)
+              const extracted = extractEmbeddedMedia(responseText)
+              const finalAttachedFiles = [...attachedFiles, ...extracted.files.map(f => path.basename(f.path))]
+              
               const agentMessage: ChatroomMessage = {
                 id: genId(),
                 senderId: agent.id,
                 senderName: agent.name,
                 role: 'assistant',
-                text: responseText,
+                text: extracted.cleanText, // Use clean text without markdown links
                 mentions: newMentions,
                 reactions: [],
                 time: Date.now(),
+                ...(finalAttachedFiles.length > 0 && { attachedFiles: finalAttachedFiles }), // Add all files if any
               }
               const latestChatrooms = loadChatrooms()
               const latestChatroom = latestChatrooms[id] as Chatroom

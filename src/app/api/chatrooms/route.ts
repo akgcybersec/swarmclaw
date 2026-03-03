@@ -38,6 +38,8 @@ export async function POST(req: Request) {
     description: body.description || '',
     agentIds,
     messages: joinMessages,
+    chatMode: body.chatMode || 'sequential',
+    autoAddress: body.autoAddress || false,
     createdAt: now,
     updatedAt: now,
   }

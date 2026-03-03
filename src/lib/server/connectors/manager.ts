@@ -669,9 +669,9 @@ async function routeMessageToChatroom(connector: Connector, msg: InboundMessage)
 
   // Parse mentions from the message text
   let mentions = parseMentions(msg.text || '', agents, chatroom.agentIds)
-  // Auto-address: if enabled and no explicit mentions, address all agents
-  if (chatroom.autoAddress && mentions.length === 0) {
-    mentions = [...chatroom.agentIds]
+  // Auto-address: if enabled and no explicit mentions, address all agents except sender
+  if (chatroom.autoAddress && mentions.length === 0 && msg.senderId !== 'user') {
+    mentions = chatroom.agentIds.filter(id => id !== msg.senderId)
   }
 
   // Create and persist the user message in the chatroom

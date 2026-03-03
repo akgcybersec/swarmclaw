@@ -21,6 +21,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   if (body.name !== undefined) chatroom.name = body.name
   if (body.description !== undefined) chatroom.description = body.description
+  if (body.chatMode !== undefined) chatroom.chatMode = body.chatMode
+  if (body.autoAddress !== undefined) chatroom.autoAddress = body.autoAddress
 
   // Diff agentIds and inject join/leave system messages
   if (Array.isArray(body.agentIds)) {
