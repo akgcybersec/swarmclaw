@@ -95,7 +95,7 @@ async function wait(ms: number): Promise<void> {
 }
 
 function getShellCommand(command: string): { shell: string; args: string[] } {
-  return { shell: '/bin/zsh', args: ['-lc', command] }
+  return { shell: '/bin/bash', args: ['-lc', command] }
 }
 
 export async function startManagedProcess(opts: StartProcessOptions): Promise<StartProcessResult> {

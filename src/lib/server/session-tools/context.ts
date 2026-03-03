@@ -71,7 +71,7 @@ export function findBinaryOnPath(binaryName: string): string | null {
   if (cached && now - cached.checkedAt < BINARY_LOOKUP_TTL_MS) return cached.path
 
   const { spawnSync } = require('child_process')
-  const probe = spawnSync('/bin/zsh', ['-lc', `command -v ${binaryName} 2>/dev/null`], {
+  const probe = spawnSync('/bin/bash', ['-lc', `command -v ${binaryName} 2>/dev/null`], {
     encoding: 'utf-8',
     timeout: 2000,
   })
