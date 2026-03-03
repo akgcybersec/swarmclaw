@@ -12,6 +12,7 @@ interface ClawHubSkill {
   id: string
   name: string
   description: string
+  owner?: string
   author: string
   tags: string[]
   downloads: number
