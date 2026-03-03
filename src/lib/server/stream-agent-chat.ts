@@ -751,6 +751,8 @@ export async function streamAgentChat(opts: StreamAgentChatOpts): Promise<Stream
   const extracted = extractSuggestions(fullText)
   fullText = extracted.clean
   if (extracted.suggestions) {
+    // Replace client-side accumulated text with the clean version (no suggestions tag)
+    write(`data: ${JSON.stringify({ t: 'r', text: fullText })}\n\n`)
     write(`data: ${JSON.stringify({ t: 'md', text: JSON.stringify({ suggestions: extracted.suggestions }) })}\n\n`)
   }
 

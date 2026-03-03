@@ -13,6 +13,7 @@ import { NATIVE_CAPABILITY_PROVIDER_IDS, NON_LANGGRAPH_PROVIDER_IDS } from '@/li
 import { AgentAvatar } from './agent-avatar'
 import { AgentPickerList } from '@/components/shared/agent-picker-list'
 import { randomSoul } from '@/lib/soul-suggestions'
+import { generateUUID } from '@/lib/crypto-polyfill'
 import { SectionLabel } from '@/components/shared/section-label'
 import { SoulLibraryPicker } from './soul-library-picker'
 
@@ -183,7 +184,7 @@ export function AgentSheet() {
         setOllamaMode(editing.credentialId && editing.provider === 'ollama' ? 'cloud' : 'local')
         setOpenclawEnabled(editing.provider === 'openclaw')
         setProjectId(editing.projectId)
-        setAvatarSeed(editing.avatarSeed || crypto.randomUUID().slice(0, 8))
+        setAvatarSeed(editing.avatarSeed || generateUUID().slice(0, 8))
         setThinkingLevel(editing.thinkingLevel || '')
         setVoiceId(editing.elevenLabsVoiceId || '')
         setHeartbeatEnabled(editing.heartbeatEnabled || false)
@@ -492,7 +493,7 @@ export function AgentSheet() {
           />
           <button
             type="button"
-            onClick={() => setAvatarSeed(crypto.randomUUID().slice(0, 8))}
+            onClick={() => setAvatarSeed(generateUUID().slice(0, 8))}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] border border-white/[0.08] bg-transparent text-text-3 text-[12px] font-600 cursor-pointer transition-all hover:bg-white/[0.04] hover:text-text-2 active:scale-95 shrink-0"
             style={{ fontFamily: 'inherit' }}
             title="Shuffle avatar"

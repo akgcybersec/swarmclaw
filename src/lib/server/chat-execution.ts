@@ -700,7 +700,7 @@ export async function executeSessionChatTurn(input: ExecuteChatTurnInput): Promi
           write: (raw) => parseAndEmit(raw),
           history: heartbeatHistory ?? applyContextClearBoundary(getSessionMessages(sessionId)),
           signal: abortController.signal,
-        })).fullText
+        })).finalResponse
       : await provider.handler.streamChat({
           session: sessionForRun,
           message,

@@ -104,7 +104,10 @@ export function SkillList({ inSidebar }: { inSidebar?: boolean }) {
         name: skill.name,
         description: skill.description,
         url: skill.url,
+        author: skill.author,
         tags: skill.tags,
+        owner: skill.owner,
+        slug: skill.id,
       })
       toast.success(`Installed "${skill.name}"`)
       loadSkills()

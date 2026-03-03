@@ -61,7 +61,7 @@ export function SecretsList({ inSidebar }: Props) {
             ? secret.agentIds.map((id) => agents[id]).filter(Boolean)
             : []
           return (
-            <button
+            <div
               key={secret.id}
               onClick={() => {
                 setEditingSecretId(secret.id)
@@ -110,7 +110,7 @@ export function SecretsList({ inSidebar }: Props) {
                   )}
                 </div>
               )}
-            </button>
+            </div>
           )
         })}
       </div>

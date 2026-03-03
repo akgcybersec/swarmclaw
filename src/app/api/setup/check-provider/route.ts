@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { loadCredentials, decryptKey } from '@/lib/server/storage'
+import { loadCredentials, decryptKey, loadProviderConfigs } from '@/lib/server/storage'
 import { getDeviceId, wsConnect } from '@/lib/providers/openclaw'
 import { OPENAI_COMPATIBLE_DEFAULTS } from '@/lib/server/provider-health'
 
@@ -212,8 +212,19 @@ export async function POST(req: Request) {
         const result = await checkOpenClaw(apiKey, endpoint)
         return NextResponse.json(result)
       }
-      default:
+      default: {
+        // Check if it's a custom (OpenAI-compatible) provider
+        const customConfigs = loadProviderConfigs()
+        const custom = customConfigs[provider]
+        if (custom?.isEnabled && custom?.baseUrl) {
+          if (custom.requiresApiKey && !apiKey) {
+            return NextResponse.json({ ok: false, message: `${custom.name} API key is required.` })
+          }
+          const result = await checkOpenAiCompatible(custom.name, apiKey, endpoint, custom.baseUrl)
+          return NextResponse.json(result)
+        }
         return NextResponse.json({ ok: false, message: `Unsupported provider: ${provider}` }, { status: 400 })
+      }
     }
   } catch (err: any) {
     const message = err?.name === 'TimeoutError'
