@@ -84,8 +84,7 @@ export function AttachmentChip({ url, filename, isUserMsg }: { url: string; file
   const handleCodePreview = async () => {
     if (codePreview !== null) { setCodeExpanded(!codeExpanded); return }
     try {
-      const serveUrl = `/api/files/serve?path=${encodeURIComponent(url.replace('/api/uploads/', ''))}`
-      const res = await fetch(url.startsWith('/api/files/') ? url : serveUrl)
+      const res = await fetch(url)
       if (!res.ok) return
       const text = await res.text()
       setCodePreview(text)
@@ -146,17 +145,27 @@ export function AttachmentChip({ url, filename, isUserMsg }: { url: string; file
         </a>
       </div>
       {isCode && codeExpanded && codePreview !== null && (
-        <div className="mt-1 rounded-[10px] border border-white/[0.06] overflow-hidden" style={{ animation: 'fade-in 0.2s ease' }}>
-          <CodeBlock className={`language-${ext}`}>
-            {codePreview.split('\n').slice(0, codeExpanded ? undefined : 10).join('\n')}
-          </CodeBlock>
+        <div className="mt-2 rounded-[12px] border border-white/[0.08] bg-[rgba(0,0,0,0.3)] overflow-hidden" style={{ animation: 'fade-in 0.2s ease' }}>
+          <div className="px-4 py-2 bg-[rgba(255,255,255,0.02)] border-b border-white/[0.06]">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-500 text-text-3/80 uppercase tracking-wide">{filename}</span>
+              <span className="text-[10px] text-text-3/60">{codePreview.split('\n').length} lines</span>
+            </div>
+          </div>
+          <div className="p-4">
+            <CodeBlock className={`language-${ext}`}>
+              {codePreview.split('\n').slice(0, codeExpanded ? undefined : 10).join('\n')}
+            </CodeBlock>
+          </div>
           {codePreview.split('\n').length > 10 && (
-            <button
-              onClick={() => setCodeExpanded((v) => !v)}
-              className="w-full px-3 py-1.5 text-[10px] text-text-3 hover:text-text-2 bg-white/[0.02] hover:bg-white/[0.04] border-none border-t border-white/[0.06] cursor-pointer transition-colors"
-            >
-              {codePreview.split('\n').length > 10 ? `Show all ${codePreview.split('\n').length} lines` : 'Show less'}
-            </button>
+            <div className="px-4 py-2 bg-[rgba(255,255,255,0.02)] border-t border-white/[0.06]">
+              <button
+                onClick={() => setCodeExpanded((v) => !v)}
+                className="w-full px-3 py-1.5 text-[11px] font-500 text-accent-bright/80 hover:text-accent-bright bg-accent-soft/20 hover:bg-accent-soft/30 border border-accent-soft/30 hover:border-accent-soft/50 rounded-[8px] cursor-pointer transition-all duration-200"
+              >
+                {codeExpanded ? `Show less (first 10 lines)` : `Show all ${codePreview.split('\n').length} lines`}
+              </button>
+            </div>
           )}
         </div>
       )}

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { validateAccessKey } from '@/lib/server/storage'
 export const dynamic = 'force-dynamic'
 
 
@@ -7,7 +8,15 @@ const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 let cache: { data: any; fetchedAt: number } | null = null
 
-export async function GET(_req: Request) {
+export async function GET(req: Request) {
+  // Validate authentication
+  const accessKey = req.headers.get('X-Access-Key')
+  if (!validateAccessKey(accessKey || '')) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 },
+    )
+  }
   const now = Date.now()
 
   if (cache && now - cache.fetchedAt < CACHE_TTL) {

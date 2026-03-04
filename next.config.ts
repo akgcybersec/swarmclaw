@@ -39,6 +39,7 @@ const nextConfig: NextConfig = {
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
+    'openclaw.lan',
   ],
   async rewrites() {
     const views = 'agents|chatrooms|schedules|memory|tasks|secrets|providers|skills|connectors|webhooks|mcp-servers|knowledge|plugins|usage|runs|logs|settings|projects|activity'

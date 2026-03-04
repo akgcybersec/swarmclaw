@@ -42,15 +42,21 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
   }
 
   // Merge built-in providers with custom configs
-  const builtinItems = providers.map((p) => ({
-    id: p.id,
-    name: p.name,
-    type: 'builtin' as const,
-    models: p.models,
-    requiresApiKey: p.requiresApiKey,
-    isEnabled: true,
-    isConnected: !p.requiresApiKey || Object.values(credentials).some((c) => c.provider === p.id),
-  }))
+  // Note: providers already includes custom providers from getProviderList()
+  // So we filter them out to avoid duplicates
+  const customIds = new Set(providerConfigs.map(c => c.id))
+  
+  const builtinItems = providers
+    .filter((p) => !customIds.has(p.id))
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      type: 'builtin' as const,
+      models: p.models,
+      requiresApiKey: p.requiresApiKey,
+      isEnabled: true,
+      isConnected: !p.requiresApiKey || Object.values(credentials).some((c) => c.provider === p.id),
+    }))
 
   const customItems = providerConfigs.map((c) => ({
     id: c.id,
@@ -76,7 +82,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
     <div className={`flex-1 overflow-y-auto ${inSidebar ? 'px-3 pb-4' : 'px-5 pb-6'}`}>
       <div className={inSidebar ? 'space-y-2' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3'}>
         {allItems.map((item) => (
-          <button
+          <div
             key={item.id}
             onClick={() => handleEdit(item.id)}
             className="w-full text-left p-4 rounded-[14px] border transition-all duration-200
@@ -121,7 +127,7 @@ export function ProviderList({ inSidebar }: { inSidebar?: boolean }) {
                 </>
               )}
             </div>
-          </button>
+          </div>
         ))}
       </div>
     </div>

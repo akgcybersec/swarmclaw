@@ -5,17 +5,30 @@ import { fetchSkillContent } from '@/lib/server/clawhub-client'
 
 export async function POST(req: Request) {
   const body = await req.json()
-  const { name, description, url, author, tags } = body
+  const { name, description, url, author, tags, owner, slug } = body
   let { content } = body
 
-  if (!content) {
+  if (!content && slug && owner) {
     try {
-      content = await fetchSkillContent(url)
+      content = await fetchSkillContent(slug, owner)
     } catch (err: any) {
-      return NextResponse.json(
-        { error: err.message || 'Failed to fetch skill content' },
-        { status: 502 }
-      )
+      // Don't fail the installation, just log the error and use fallback
+      console.warn(`Failed to fetch skill content for ${slug}/${owner}:`, err.message)
+      content = `# ${slug}
+
+## Description
+Skill from ClawHub repository.
+
+## Author
+${owner}
+
+## Installation
+This skill was automatically installed from ClawHub.
+
+## Usage
+Configure this skill in your agent settings to enable its functionality.
+
+*Note: Full skill content was not available from the source repository.*`
     }
   }
 

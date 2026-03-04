@@ -892,6 +892,7 @@ export interface ClawHubSkill {
   downloads: number
   url: string
   version: string
+  owner?: string // GitHub owner for fetching content
 }
 
 // --- OpenClaw Execution Approvals ---

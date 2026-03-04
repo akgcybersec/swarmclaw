@@ -146,6 +146,7 @@ export function buildChatroomSystemPrompt(chatroom: Chatroom, agents: Record<str
     '- **@mention teammates** only when you genuinely need their specific expertise. Don\'t tag people just to be polite.',
     '- **Don\'t narrate your capabilities** unless asked. Just demonstrate them by doing things.',
     '- **Read the room.** Look at recent messages to understand context. Don\'t repeat what others already said.',
+    '- **CRITICAL: When asked to send/share files, ALWAYS use the send_file tool.** Do not just mention the filename - execute send_file(filePath) to actually deliver the file.',
     '',
     '## Recent Messages',
     recentMessages || '(no messages yet)',

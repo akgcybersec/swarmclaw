@@ -496,6 +496,7 @@ export async function streamAgentChat(opts: StreamAgentChatOpts): Promise<Stream
   })
   const agent = createReactAgent({ llm, tools, stateModifier })
   const recursionLimit = getAgentLoopRecursionLimit(runtime)
+  console.log(`[stream-agent-chat] Using recursionLimit: ${recursionLimit} for session ${session.id}`)
 
   // Build message history for context
   const IMAGE_EXTS = /\.(png|jpg|jpeg|gif|webp|bmp)$/i
@@ -804,10 +805,19 @@ export async function streamAgentChat(opts: StreamAgentChatOpts): Promise<Stream
     return { fullText, finalResponse: fullText }
   }
 
+  // Strip text-based <tool_call> blocks emitted by models that lack native function calling support
+  const toolCallBlockRe = /<tool_call>[\s\S]*?<\/tool_call>/g
+  if (toolCallBlockRe.test(fullText)) {
+    fullText = fullText.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '').replace(/\n{3,}/g, '\n\n').trim()
+    write(`data: ${JSON.stringify({ t: 'r', text: fullText })}\n\n`)
+  }
+
   // Extract LLM-generated suggestions from the response and strip the tag
   const extracted = extractSuggestions(fullText)
   fullText = extracted.clean
   if (extracted.suggestions) {
+    // Replace client-side accumulated text with the clean version (no suggestions tag)
+    write(`data: ${JSON.stringify({ t: 'r', text: fullText })}\n\n`)
     write(`data: ${JSON.stringify({ t: 'md', text: JSON.stringify({ suggestions: extracted.suggestions }) })}\n\n`)
   }
 

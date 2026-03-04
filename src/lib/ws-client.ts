@@ -20,7 +20,10 @@ function getWsUrl(key: string): string {
   // proxy. Use the page's host directly so the proxy can route /ws traffic.
   const appPort = String((Number(buildPort) || 3457) - 1) // e.g. 3456
   const behindProxy = !pagePort || pagePort === '80' || pagePort === '443' || pagePort !== appPort
-  const wsHost = behindProxy ? window.location.host : `${window.location.hostname}:${buildPort}`
+  
+  // Special case: if page is on port 3000, WebSocket is on 3001 (not buildPort)
+  const wsPort = pagePort === '3000' ? '3001' : buildPort
+  const wsHost = behindProxy ? window.location.host : `${window.location.hostname}:${wsPort}`
 
   return `${protocol}://${wsHost}/ws?key=${encodeURIComponent(key)}`
 }

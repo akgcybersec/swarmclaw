@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { validateAccessKey } from '@/lib/server/storage'
 
 const PLUGINS_DIR = path.join(process.cwd(), 'data', 'plugins')
 
 export async function POST(req: Request) {
+  // Validate authentication
+  const accessKey = req.headers.get('X-Access-Key')
+  if (!validateAccessKey(accessKey || '')) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 },
+    )
+  }
+
   const body = await req.json()
   const { url, filename } = body
 

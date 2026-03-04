@@ -1,5 +1,7 @@
 'use client'
 
+import { generateUUID } from '@/lib/crypto-polyfill'
+
 import { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -194,7 +196,7 @@ export function TaskSheet() {
   const handleAddComment = async () => {
     if (!editing || !commentText.trim()) return
     const c: TaskComment = {
-      id: crypto.randomUUID().slice(0, 8),
+      id: generateUUID().slice(0, 8),
       author: 'You',
       text: commentText.trim(),
       createdAt: Date.now(),
