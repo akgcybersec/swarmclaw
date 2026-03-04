@@ -46,6 +46,8 @@ import { WalletPanel } from '@/components/wallets/wallet-panel'
 import { ProjectList } from '@/components/projects/project-list'
 import { ProjectDetail } from '@/components/projects/project-detail'
 import { ProjectSheet } from '@/components/projects/project-sheet'
+import { PipelineList } from '@/components/pipelines/pipeline-list'
+import { PipelineDetail } from '@/components/pipelines/pipeline-detail'
 import { SearchDialog } from '@/components/shared/search-dialog'
 import { AgentSwitchDialog } from '@/components/shared/agent-switch-dialog'
 import { KeyboardShortcutsDialog } from '@/components/shared/keyboard-shortcuts-dialog'
@@ -67,6 +69,32 @@ import type { AppView } from '@/types'
 const RAIL_EXPANDED_KEY = 'sc_rail_expanded'
 const STAR_NOTIFICATION_KEY = 'sc_star_notification_v1'
 const GITHUB_REPO_URL = 'https://github.com/swarmclawai/swarmclaw'
+
+function PipelinesView() {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  return (
+    <div className="flex-1 flex h-full min-w-0">
+      <div className="w-[280px] shrink-0 border-r border-white/[0.06] flex flex-col">
+        <PipelineList selectedId={selectedId} onSelect={setSelectedId} />
+      </div>
+      {selectedId ? (
+        <PipelineDetail pipelineId={selectedId} onDeleted={() => setSelectedId(null)} />
+      ) : (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-[340px]">
+            <div className="w-10 h-10 rounded-[12px] bg-accent-soft/20 flex items-center justify-center mx-auto mb-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-accent-bright/60">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
+            </div>
+            <p className="text-[13px] font-600 text-text-2 mb-1">Select a Pipeline</p>
+            <p className="text-[12px] text-text-3">Choose a pipeline from the sidebar or create a new one</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function AppLayout() {
   const currentUser = useAppStore((s) => s.currentUser)
@@ -357,6 +385,11 @@ export function AppLayout() {
             <NavItem view="schedules" label="Schedules" expanded={railExpanded} active={activeView} sidebarOpen={sidebarOpen} onClick={() => handleNavClick('schedules')}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              </svg>
+            </NavItem>
+            <NavItem view="pipelines" label="Pipelines" expanded={railExpanded} active={activeView} sidebarOpen={sidebarOpen} onClick={() => handleNavClick('pipelines')}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
             </NavItem>
             <NavItem view="memory" label="Memory" expanded={railExpanded} active={activeView} sidebarOpen={sidebarOpen} onClick={() => handleNavClick('memory')}>
@@ -777,6 +810,8 @@ export function AppLayout() {
               </div>
               <ProjectDetail />
             </div>
+          ) : activeView === 'pipelines' ? (
+            <PipelinesView />
           ) : activeView === 'settings' ? (
             <SettingsPage />
           ) : !sidebarOpen && FULL_WIDTH_VIEWS.has(activeView) ? (
@@ -915,12 +950,13 @@ const VIEW_DESCRIPTIONS: Record<AppView, string> = {
   settings: 'Manage providers, API keys & orchestrator engine',
   projects: 'Group agents, tasks & schedules into projects',
   activity: 'Audit trail of all entity mutations',
+  pipelines: 'Multi-stage agent pipelines with real-time execution',
 }
 
 const FULL_WIDTH_VIEWS = new Set<AppView>([
   'home', 'chatrooms', 'schedules', 'secrets', 'providers', 'skills',
   'connectors', 'webhooks', 'mcp_servers', 'knowledge', 'plugins',
-  'usage', 'wallets', 'runs', 'logs', 'settings', 'activity', 'projects',
+  'usage', 'wallets', 'runs', 'logs', 'settings', 'activity', 'projects', 'pipelines',
 ])
 
 const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { icon: string; title: string; description: string; features: string[] }> = {
@@ -1038,9 +1074,15 @@ const VIEW_EMPTY_STATES: Record<Exclude<AppView, 'agents' | 'home'>, { icon: str
     description: 'Agent crypto wallets for autonomous financial operations on Solana.',
     features: ['Create Solana wallets for agents', 'Per-transaction and daily spending limits', 'User approval for transactions', 'Balance tracking and transaction history'],
   },
+  pipelines: {
+    icon: 'layers',
+    title: 'Pipelines',
+    description: 'Create multi-stage agent pipelines with real-time execution monitoring.',
+    features: ['Design pipelines with sequential and parallel stages', 'Assign agents to stages with custom tasks', 'Real-time progress visualization with task indicators', 'Configurable failure handling and user intervention'],
+  },
 }
 
-function ViewEmptyState({ view }: { view: AppView }) {
+export function ViewEmptyState({ view }: { view: AppView }) {
   if (view === 'agents' || view === 'home') return null
   const config = VIEW_EMPTY_STATES[view as Exclude<AppView, 'agents' | 'home'>]
   if (!config) return null
@@ -1119,6 +1161,8 @@ function ViewEmptyIcon({ type }: { type: string }) {
       return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={cls}><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
     case 'activity':
       return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={cls}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+    case 'layers':
+      return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={cls}><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
     default:
       return null
   }

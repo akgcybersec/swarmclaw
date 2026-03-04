@@ -1,11 +1,12 @@
 'use client'
 
 import { create } from 'zustand'
-import type { Sessions, Session, NetworkInfo, Directory, ProviderInfo, Credentials, Agent, Schedule, AppView, BoardTask, AppSettings, OrchestratorSecret, ProviderConfig, Skill, Connector, Webhook, McpServerConfig, PluginMeta, Project, FleetFilter, ActivityEntry, AppNotification } from '../types'
+import type { Sessions, Session, NetworkInfo, Directory, ProviderInfo, Credentials, Agent, Schedule, AppView, BoardTask, AppSettings, OrchestratorSecret, ProviderConfig, Skill, Connector, Webhook, McpServerConfig, PluginMeta, Project, FleetFilter, ActivityEntry, AppNotification, Pipeline, PipelineRun } from '../types'
 import { fetchSessions, fetchDirs, fetchProviders, fetchCredentials } from '../lib/sessions'
 import { fetchAgents } from '../lib/agents'
 import { fetchSchedules } from '../lib/schedules'
 import { fetchTasks } from '../lib/tasks'
+import { fetchPipelines, fetchPipelineRuns } from '../lib/pipelines'
 import { api } from '../lib/api-client'
 import { safeStorageGet, safeStorageGetJson, safeStorageRemove, safeStorageSet } from '../lib/safe-storage'
 
@@ -209,6 +210,18 @@ interface AppState {
   // Wallets
   walletPanelAgentId: string | null
   setWalletPanelAgentId: (id: string | null) => void
+
+  // Pipelines
+  pipelines: Record<string, Pipeline>
+  pipelineRuns: Record<string, PipelineRun>
+  loadPipelines: () => Promise<void>
+  loadPipelineRuns: (pipelineId?: string) => Promise<void>
+  pipelineSheetOpen: boolean
+  setPipelineSheetOpen: (open: boolean) => void
+  editingPipelineId: string | null
+  setEditingPipelineId: (id: string | null) => void
+  currentPipelineId: string | null
+  setCurrentPipelineId: (id: string | null) => void
 
 }
 
@@ -695,5 +708,35 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Wallets
   walletPanelAgentId: null,
   setWalletPanelAgentId: (id) => set({ walletPanelAgentId: id }),
+
+  // Pipelines
+  pipelines: {},
+  pipelineRuns: {},
+  loadPipelines: async () => {
+    try {
+      const pipelines = await fetchPipelines()
+      set({ pipelines })
+    } catch {
+      // ignore
+    }
+  },
+  loadPipelineRuns: async (pipelineId) => {
+    try {
+      const runs = await fetchPipelineRuns(pipelineId)
+      const runsMap = runs.reduce((acc, run) => {
+        acc[run.id] = run
+        return acc
+      }, {} as Record<string, PipelineRun>)
+      set({ pipelineRuns: runsMap })
+    } catch {
+      // ignore
+    }
+  },
+  pipelineSheetOpen: false,
+  setPipelineSheetOpen: (open) => set({ pipelineSheetOpen: open }),
+  editingPipelineId: null,
+  setEditingPipelineId: (id) => set({ editingPipelineId: id }),
+  currentPipelineId: null,
+  setCurrentPipelineId: (id) => set({ currentPipelineId: id }),
 
 }))

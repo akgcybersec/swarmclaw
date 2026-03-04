@@ -24,6 +24,7 @@ export const VIEW_TO_PATH: Record<AppView, string> = {
   settings: '/settings',
   projects: '/projects',
   activity: '/activity',
+  pipelines: '/pipelines',
 }
 
 const entries = Object.entries(VIEW_TO_PATH) as [AppView, string][]

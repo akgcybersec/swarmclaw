@@ -153,6 +153,8 @@ const COLLECTIONS = [
   'wallet_balance_history',
   'moderation_logs',
   'connector_health',
+  'pipelines',
+  'pipeline_runs',
 ] as const
 
 for (const table of COLLECTIONS) {
@@ -984,4 +986,30 @@ export function getSessionMessages(sessionId: string): Message[] {
   if (!row) return []
   const session = JSON.parse(row.data)
   return session?.messages || []
+}
+
+// --- Pipelines ---
+export function loadPipelines(): Record<string, unknown> {
+  return loadCollection('pipelines')
+}
+
+export function upsertPipeline(id: string, pipeline: unknown) {
+  upsertCollectionItem('pipelines', id, pipeline)
+}
+
+export function deletePipeline(id: string) {
+  deleteCollectionItem('pipelines', id)
+}
+
+// --- Pipeline Runs ---
+export function loadPipelineRuns(): Record<string, unknown> {
+  return loadCollection('pipeline_runs')
+}
+
+export function upsertPipelineRun(id: string, run: unknown) {
+  upsertCollectionItem('pipeline_runs', id, run)
+}
+
+export function deletePipelineRun(id: string) {
+  deleteCollectionItem('pipeline_runs', id)
 }

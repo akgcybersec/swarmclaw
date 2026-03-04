@@ -218,9 +218,9 @@ export function buildCrudTools(bctx: ToolBuildContext): StructuredToolInterface[
     let description = `Manage SwarmClaw ${res.label}. ${res.readOnly ? 'List and get only.' : 'List, get, create, update, or delete.'} Returns JSON.`
     if (toolKey === 'manage_tasks') {
       if (assignScope === 'self') {
-        description += `\n\nSet "agentId" to assign a task to yourself ("${ctx?.agentId || 'unknown'}") or leave it null. You can only assign tasks to yourself. Valid statuses: backlog, queued, running, completed, failed.`
+        description += `\n\nSet "agentId" to assign a task to yourself ("${ctx?.agentId || 'unknown'}") or leave it null. You can only assign tasks to yourself. Valid statuses: backlog, queued, running, completed, failed. **IMPORTANT:** When setting status to "completed", you MUST also provide a "result" field with a detailed summary of what was accomplished (minimum 40 characters for implementation tasks, 20 for others).`
       } else {
-        description += `\n\nSet "agentId" to assign a task to an agent (including yourself: "${ctx?.agentId || 'unknown'}"). Valid statuses: backlog, queued, running, completed, failed.` + agentSummary
+        description += `\n\nSet "agentId" to assign a task to an agent (including yourself: "${ctx?.agentId || 'unknown'}"). Valid statuses: backlog, queued, running, completed, failed. **IMPORTANT:** When setting status to "completed", you MUST also provide a "result" field with a detailed summary of what was accomplished (minimum 40 characters for implementation tasks, 20 for others).` + agentSummary
       }
     } else if (toolKey === 'manage_agents') {
       description += `\n\nAgents may self-edit their own soul. To update your soul, use action="update", id="${ctx?.agentId || 'your-agent-id'}", and include data with the "soul" field.`

@@ -408,7 +408,7 @@ export interface MemoryEntry {
 }
 
 export type SessionType = 'human' | 'orchestrated'
-export type AppView = 'home' | 'agents' | 'chatrooms' | 'schedules' | 'memory' | 'tasks' | 'secrets' | 'providers' | 'skills' | 'connectors' | 'webhooks' | 'mcp_servers' | 'knowledge' | 'plugins' | 'usage' | 'wallets' | 'runs' | 'logs' | 'settings' | 'projects' | 'activity'
+export type AppView = 'home' | 'agents' | 'chatrooms' | 'schedules' | 'memory' | 'tasks' | 'secrets' | 'providers' | 'skills' | 'connectors' | 'webhooks' | 'mcp_servers' | 'knowledge' | 'plugins' | 'usage' | 'wallets' | 'runs' | 'logs' | 'settings' | 'projects' | 'activity' | 'pipelines'
 
 // --- Chatrooms ---
 
@@ -1009,3 +1009,82 @@ export interface GatewaySessionPreview {
 
 // --- Gateway Reload Mode (F21) ---
 export type GatewayReloadMode = 'hot' | 'hybrid' | 'full'
+
+// --- Pipelines ---
+
+export type PipelineTaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+export type PipelineStageStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+export type PipelineRunStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'paused'
+export type PipelineFailurePolicy = 'continue' | 'pause' | 'abort'
+export type PipelineNotifyChannel = 'app' | 'connector'  // app = in-app toast/banner, connector = Telegram/WhatsApp
+
+export interface PipelineStageTask {
+  id: string
+  label: string                    // short task name
+  prompt: string                   // instruction for the agent
+  order: number                    // execution order within stage
+}
+
+export interface PipelineStage {
+  id: string
+  agentId: string
+  label: string                    // user-visible stage name (e.g. "OSINT", "Recon")
+  tasks: PipelineStageTask[]       // ordered list of tasks for this agent
+  dependsOn: string[]              // stage IDs that must complete first (DAG)
+  order: number                    // visual ordering hint
+}
+
+export interface PipelineNotifySettings {
+  onTaskComplete: boolean            // notify when each task finishes
+  onStageComplete: boolean           // notify when each stage finishes
+  onRunComplete: boolean             // notify when the entire run finishes
+  onFailure: boolean                 // notify on any failure
+  channels: PipelineNotifyChannel[]  // where to send notifications
+  connectorId?: string | null        // which connector to use (if 'connector' channel)
+}
+
+export interface Pipeline {
+  id: string
+  name: string
+  description: string
+  projectId?: string | null
+  stages: PipelineStage[]
+  failurePolicy: PipelineFailurePolicy  // what to do when a task fails
+  notifySettings: PipelineNotifySettings // when/how to notify the user
+  createdAt: number
+  updatedAt: number
+}
+
+// --- Pipeline Runs (runtime state) ---
+
+export interface PipelineRunTask {
+  taskId: string
+  status: PipelineTaskStatus
+  result?: string | null
+  error?: string | null
+  artifacts?: Array<{ url: string; type: string; filename: string }>
+  startedAt?: number | null
+  completedAt?: number | null
+}
+
+export interface PipelineRunStage {
+  stageId: string
+  status: PipelineStageStatus
+  sessionId?: string | null
+  tasks: PipelineRunTask[]         // mirrors stage tasks with runtime state
+  startedAt?: number | null
+  completedAt?: number | null
+}
+
+export interface PipelineRun {
+  id: string
+  pipelineId: string
+  projectId?: string | null
+  status: PipelineRunStatus
+  stages: PipelineRunStage[]
+  // When paused due to failure — which task is awaiting intervention
+  pausedAt?: { stageId: string; taskId: string } | null
+  createdAt: number
+  updatedAt: number
+  completedAt?: number | null
+}
