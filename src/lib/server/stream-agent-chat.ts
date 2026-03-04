@@ -442,6 +442,7 @@ export async function streamAgentChat(opts: StreamAgentChatOpts): Promise<Stream
   })
   const agent = createReactAgent({ llm, tools, stateModifier })
   const recursionLimit = getAgentLoopRecursionLimit(runtime)
+  console.log(`[stream-agent-chat] Using recursionLimit: ${recursionLimit} for session ${session.id}`)
 
   // Build message history for context
   const IMAGE_EXTS = /\.(png|jpg|jpeg|gif|webp|bmp)$/i

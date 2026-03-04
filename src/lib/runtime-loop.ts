@@ -3,7 +3,7 @@ import type { LoopMode } from '@/types'
 export const DEFAULT_LOOP_MODE: LoopMode = 'bounded'
 
 // Loop limits
-export const DEFAULT_AGENT_LOOP_RECURSION_LIMIT = 50
+export const DEFAULT_AGENT_LOOP_RECURSION_LIMIT = 100
 export const DEFAULT_ORCHESTRATOR_LOOP_RECURSION_LIMIT = 100
 export const DEFAULT_LEGACY_ORCHESTRATOR_MAX_TURNS = 10
 export const DEFAULT_ONGOING_LOOP_MAX_ITERATIONS = 250
