@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/stores/use-app-store'
-import { deletePipeline, startPipelineRun, updatePipeline, cancelPipelineRun } from '@/lib/pipelines'
+import { deletePipeline, startPipelineRun, updatePipeline, cancelPipelineRun, deleteRun, nudgeTask } from '@/lib/pipelines'
+import { StageArtifactsPanel } from './stage-artifacts-panel'
 import type { Pipeline, PipelineRun, PipelineRunStage, PipelineRunTask, PipelineStage, PipelineStageTask } from '@/types'
 
 function relativeDate(ts: number): string {
@@ -54,6 +55,11 @@ export function PipelineDetail({ pipelineId, onDeleted }: PipelineDetailProps) {
   const agents = useAppStore((s) => s.agents)
   const setActiveView = useAppStore((s) => s.setActiveView)
   const setEditingTaskId = useAppStore((s) => s.setEditingTaskId)
+  const artifactsPanelOpen = useAppStore((s) => s.artifactsPanelOpen)
+  const artifactsPanelRunId = useAppStore((s) => s.artifactsPanelRunId)
+  const artifactsPanelStageId = useAppStore((s) => s.artifactsPanelStageId)
+  const artifactsPanelStageName = useAppStore((s) => s.artifactsPanelStageName)
+  const setArtifactsPanel = useAppStore((s) => s.setArtifactsPanel)
 
   const pipeline = pipelines[pipelineId] as Pipeline | undefined
   const [tab, setTab] = useState<'overview' | 'runs' | 'edit'>('overview')
@@ -61,6 +67,9 @@ export function PipelineDetail({ pipelineId, onDeleted }: PipelineDetailProps) {
   const [running, setRunning] = useState(false)
   const [saving, setSaving] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [deletingRun, setDeletingRun] = useState(false)
+  const [confirmDeleteRun, setConfirmDeleteRun] = useState(false)
+  const [nudgingTask, setNudgingTask] = useState<string | null>(null)
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
 
   // Edit state
@@ -88,6 +97,7 @@ export function PipelineDetail({ pipelineId, onDeleted }: PipelineDetailProps) {
         stages: editStages.map((st, i) => ({
           ...st,
           order: i + 1,
+          useAssetsFrom: st.useAssetsFrom ?? [],
           tasks: st.tasks.map((t, j) => ({ ...t, order: j + 1 }))
         })),
         failurePolicy: editPolicy,
@@ -205,6 +215,7 @@ export function PipelineDetail({ pipelineId, onDeleted }: PipelineDetailProps) {
   }
 
   return (
+    <>
     <div className="flex-1 flex flex-col h-full min-h-0 min-w-0">
       {/* Header */}
       <div className="px-6 pt-5 pb-0 shrink-0">
@@ -384,6 +395,28 @@ export function PipelineDetail({ pipelineId, onDeleted }: PipelineDetailProps) {
                         </button>
                       </>
                     )}
+                    {selectedRun.status !== 'running' && selectedRun.status !== 'pending' && (
+                      confirmDeleteRun ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-text-3">Delete run?</span>
+                          <button
+                            onClick={async () => { setDeletingRun(true); try { await deleteRun(selectedRun.id); setSelectedRunId(null); setConfirmDeleteRun(false); loadPipelineRuns() } finally { setDeletingRun(false) } }}
+                            disabled={deletingRun}
+                            className="px-2 py-0.5 rounded-[6px] bg-red-500/20 text-red-400 text-[11px] font-600 hover:bg-red-500/30 cursor-pointer transition-all disabled:opacity-50"
+                            style={{ fontFamily: 'inherit' }}
+                          >{deletingRun ? '…' : 'Delete'}</button>
+                          <button onClick={() => setConfirmDeleteRun(false)} className="px-2 py-0.5 rounded-[6px] bg-white/[0.04] text-text-3 text-[11px] font-600 hover:bg-white/[0.07] cursor-pointer transition-all" style={{ fontFamily: 'inherit' }}>Cancel</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteRun(true)}
+                          title="Delete this run"
+                          className="p-1 rounded-[6px] text-text-3 hover:bg-red-500/10 hover:text-red-400 transition-all cursor-pointer"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        </button>
+                      )
+                    )}
                     <span className="text-[11px] text-text-3 ml-auto">{relativeDate(selectedRun.createdAt)}</span>
                     {selectedRun.completedAt && (
                       <span className="text-[11px] text-text-3">
@@ -417,6 +450,16 @@ export function PipelineDetail({ pipelineId, onDeleted }: PipelineDetailProps) {
                             <span className="text-[13px] font-600 text-text flex-1">{stageDef?.label ?? `Stage ${stageIdx + 1}`}</span>
                             {agent && <span className="text-[11px] text-text-3 bg-white/[0.04] px-2 py-0.5 rounded-full">{(agent as any).name}</span>}
                             {rs.startedAt && <span className="text-[11px] text-text-3">{rs.completedAt ? `${((rs.completedAt - rs.startedAt)/1000).toFixed(1)}s` : '…'}</span>}
+                            {(isDone || isFailed) && (
+                              <button
+                                onClick={() => setArtifactsPanel(true, selectedRun.id, rs.stageId, stageDef?.label ?? `Stage ${stageIdx + 1}`)}
+                                title="View stage artifacts"
+                                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-500 bg-white/[0.04] text-text-3 hover:bg-accent-soft/30 hover:text-accent-bright border border-white/[0.06] hover:border-accent-bright/20 transition-all cursor-pointer"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                                Files
+                              </button>
+                            )}
                             <StatusBadge status={rs.status} />
                           </div>
 
@@ -467,6 +510,30 @@ export function PipelineDetail({ pipelineId, onDeleted }: PipelineDetailProps) {
                                         )}
                                       </div>
                                     </div>
+                                    {rt.status === 'running' && (rt as any).boardTaskId && (
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          title="Interrupt: force agent to stop and complete task"
+                                          disabled={nudgingTask === (rt as any).boardTaskId + '-interrupt'}
+                                          onClick={async () => {
+                                            const tid = (rt as any).boardTaskId
+                                            setNudgingTask(tid + '-interrupt')
+                                            try { await nudgeTask(selectedRun.id, rs.stageId, tid, 'interrupt') } finally { setTimeout(() => setNudgingTask(null), 1500) }
+                                          }}
+                                          className="flex items-center px-1.5 py-0.5 rounded text-[10px] font-600 font-mono bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-400/20 cursor-pointer transition-all disabled:opacity-60"
+                                        >{nudgingTask === (rt as any).boardTaskId + '-interrupt' ? '✓' : '^C'}</button>
+                                        <button
+                                          title="Ask agent for status update"
+                                          disabled={nudgingTask === (rt as any).boardTaskId + '-check'}
+                                          onClick={async () => {
+                                            const tid = (rt as any).boardTaskId
+                                            setNudgingTask(tid + '-check')
+                                            try { await nudgeTask(selectedRun.id, rs.stageId, tid, 'check') } finally { setTimeout(() => setNudgingTask(null), 1500) }
+                                          }}
+                                          className="flex items-center px-1.5 py-0.5 rounded text-[10px] font-600 font-mono bg-white/[0.04] text-text-3 hover:bg-white/[0.07] border border-white/[0.06] cursor-pointer transition-all disabled:opacity-60"
+                                        >{nudgingTask === (rt as any).boardTaskId + '-check' ? '✓' : '?'}</button>
+                                      </div>
+                                    )}
                                     {rt.startedAt && rt.completedAt && (
                                       <span className="text-[10px] text-text-3">{`${((rt.completedAt - rt.startedAt)/1000).toFixed(1)}s`}</span>
                                     )}
@@ -596,6 +663,49 @@ export function PipelineDetail({ pipelineId, onDeleted }: PipelineDetailProps) {
                       </button>
                     </div>
 
+                    {/* Use Assets From */}
+                    {idx > 0 && (
+                      <div className="px-3 py-2 border-t border-white/[0.04] bg-white/[0.01]">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-3 flex-shrink-0">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                          </svg>
+                          <span className="text-[10px] font-600 text-text-3 uppercase tracking-wider">Use Assets From</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {editStages.slice(0, idx).map(prevStage => {
+                            const checked = (stage.useAssetsFrom ?? []).includes(prevStage.id)
+                            return (
+                              <label key={prevStage.id} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-500 cursor-pointer border transition-all ${
+                                checked
+                                  ? 'bg-accent-soft/50 border-accent-bright/30 text-accent-bright'
+                                  : 'bg-white/[0.03] border-white/[0.08] text-text-3 hover:border-white/[0.15]'
+                              }`}>
+                                <input
+                                  type="checkbox"
+                                  className="hidden"
+                                  checked={checked}
+                                  onChange={e => {
+                                    const current = stage.useAssetsFrom ?? []
+                                    const next = e.target.checked
+                                      ? [...current, prevStage.id]
+                                      : current.filter(id => id !== prevStage.id)
+                                    updateStage(stage.id, { useAssetsFrom: next })
+                                  }}
+                                />
+                                {checked && (
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                )}
+                                {prevStage.label || `Stage ${editStages.indexOf(prevStage) + 1}`}
+                              </label>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Tasks */}
                     <div className="divide-y divide-white/[0.04]">
                       {stage.tasks.map((task, tIdx) => (
@@ -660,5 +770,15 @@ export function PipelineDetail({ pipelineId, onDeleted }: PipelineDetailProps) {
         )}
       </div>
     </div>
+
+    {artifactsPanelOpen && artifactsPanelRunId && artifactsPanelStageId && (
+      <StageArtifactsPanel
+        runId={artifactsPanelRunId!}
+        stageId={artifactsPanelStageId!}
+        stageName={artifactsPanelStageName ?? ''}
+        onClose={() => setArtifactsPanel(false)}
+      />
+    )}
+    </>
   )
 }

@@ -33,17 +33,7 @@ const MIME_MAP: Record<string, string> = {
 
 const MAX_SIZE = 10 * 1024 * 1024 // 10MB
 
-export async function GET(req: Request) {
-  const url = new URL(req.url)
-  const filePath = url.searchParams.get('path')
-
-  if (!filePath) {
-    return NextResponse.json({ error: 'Missing path parameter' }, { status: 400 })
-  }
-
-  // Resolve and normalize the path
-  const resolved = path.resolve(filePath)
-
+function serveFile(resolved: string): NextResponse {
   // Block access to sensitive paths
   const blocked = ['.env', 'credentials', '.ssh', '.gnupg', '.aws']
   if (blocked.some((b) => resolved.includes(b))) {
@@ -74,4 +64,41 @@ export async function GET(req: Request) {
         : `attachment; filename="${path.basename(resolved)}"`,
     },
   })
+}
+
+export async function GET(req: Request) {
+  const url = new URL(req.url)
+  const token = url.searchParams.get('token')
+  const filePath = url.searchParams.get('path')
+
+  // Token-based access (secure, time-limited)
+  if (token) {
+    const { tokenStore } = await import('../serve-url/route')
+    const tokenData = tokenStore.get(token)
+    
+    if (!tokenData) {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 })
+    }
+
+    if (tokenData.expiresAt < Date.now()) {
+      tokenStore.delete(token)
+      return NextResponse.json({ error: 'Token expired' }, { status: 401 })
+    }
+
+    // Use the path from the token (prevents path manipulation)
+    const resolvedPath = path.resolve(tokenData.path)
+    
+    // Delete token after first use (one-time use)
+    tokenStore.delete(token)
+    
+    return serveFile(resolvedPath)
+  }
+
+  // Legacy path-based access (kept for backward compatibility, but requires auth middleware)
+  if (!filePath) {
+    return NextResponse.json({ error: 'Missing path or token parameter' }, { status: 400 })
+  }
+
+  const resolved = path.resolve(filePath)
+  return serveFile(resolved)
 }

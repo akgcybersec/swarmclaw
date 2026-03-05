@@ -53,3 +53,11 @@ export async function intervenePipelineRun(id: string, action: 'retry' | 'skip')
 export async function cancelPipelineRun(pipelineId: string, runId: string): Promise<void> {
   await api('POST', `/pipelines/${pipelineId}/runs/${runId}/cancel`)
 }
+
+export async function deleteRun(id: string): Promise<void> {
+  await api('DELETE', `/pipeline-runs/${id}`)
+}
+
+export async function nudgeTask(runId: string, stageId: string, taskId: string, type: 'interrupt' | 'check'): Promise<void> {
+  await api('POST', `/pipeline-runs/${runId}/stages/${stageId}/nudge`, { taskId, type })
+}

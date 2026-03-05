@@ -54,6 +54,8 @@ export function proxy(request: NextRequest) {
     && /^\/api\/webhooks\/[^/]+\/?$/.test(pathname)
   const isConnectorWebhook = request.method === 'POST'
     && /^\/api\/connectors\/[^/]+\/webhook\/?$/.test(pathname)
+  const isTokenBasedFileServe = pathname === '/api/files/serve'
+    && request.nextUrl.searchParams.has('token')
 
   // Only protect API routes (not auth, uploads served as static assets, or inbound webhooks)
   if (
@@ -62,6 +64,7 @@ export function proxy(request: NextRequest) {
     || pathname.startsWith('/api/uploads/')
     || isWebhookTrigger
     || isConnectorWebhook
+    || isTokenBasedFileServe
   ) {
     return NextResponse.next()
   }

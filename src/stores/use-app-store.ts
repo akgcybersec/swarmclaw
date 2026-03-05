@@ -223,6 +223,13 @@ interface AppState {
   currentPipelineId: string | null
   setCurrentPipelineId: (id: string | null) => void
 
+  // Stage Artifacts Panel
+  artifactsPanelOpen: boolean
+  artifactsPanelRunId: string | null
+  artifactsPanelStageId: string | null
+  artifactsPanelStageName: string | null
+  setArtifactsPanel: (open: boolean, runId?: string | null, stageId?: string | null, stageName?: string | null) => void
+
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -738,5 +745,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   setEditingPipelineId: (id) => set({ editingPipelineId: id }),
   currentPipelineId: null,
   setCurrentPipelineId: (id) => set({ currentPipelineId: id }),
+
+  // Stage Artifacts Panel
+  artifactsPanelOpen: false,
+  artifactsPanelRunId: null,
+  artifactsPanelStageId: null,
+  artifactsPanelStageName: null,
+  setArtifactsPanel: (open, runId = null, stageId = null, stageName = null) =>
+    set({ artifactsPanelOpen: open, artifactsPanelRunId: runId, artifactsPanelStageId: stageId, artifactsPanelStageName: stageName }),
 
 }))

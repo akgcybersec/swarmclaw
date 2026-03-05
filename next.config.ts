@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
   },
   env: {
     NEXT_PUBLIC_GIT_SHA: getGitSha(),
-    NEXT_PUBLIC_WS_PORT: String((Number(process.env.PORT) || 3456) + 1),
+    NEXT_PUBLIC_WS_PORT: '3001',
   },
   // Allow external network access
   serverExternalPackages: [
@@ -40,6 +40,7 @@ const nextConfig: NextConfig = {
     '127.0.0.1',
     '0.0.0.0',
     'openclaw.lan',
+    '192.168.1.43',
   ],
   async rewrites() {
     const views = 'agents|chatrooms|schedules|memory|tasks|secrets|providers|skills|connectors|webhooks|mcp-servers|knowledge|plugins|usage|runs|logs|settings|projects|activity'

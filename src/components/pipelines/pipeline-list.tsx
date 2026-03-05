@@ -47,7 +47,7 @@ export function PipelineList({ selectedId, onSelect }: PipelineListProps) {
         id: `stage-${Date.now()}`,
         agentId: Object.keys(agents)[0] || '',
         label: 'Stage 1',
-        tasks: [{ id: `task-${Date.now()}`, label: 'Task 1', prompt: '', order: 1 }],
+        tasks: [{ id: `task-${Date.now()}`, label: 'Task 1', prompt: 'Enter task instructions here', order: 1 }],
         dependsOn: [],
         order: 1
       }],

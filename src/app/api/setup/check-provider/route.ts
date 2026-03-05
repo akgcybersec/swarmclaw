@@ -227,6 +227,7 @@ export async function POST(req: Request) {
       }
     }
   } catch (err: any) {
+    console.error('[check-provider] Error:', err)
     const message = err?.name === 'TimeoutError'
       ? 'Connection check timed out. Verify endpoint/network and try again.'
       : (err?.message || 'Failed to validate provider setup.')

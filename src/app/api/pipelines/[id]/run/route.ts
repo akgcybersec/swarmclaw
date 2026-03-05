@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { loadPipelines, loadPipelineRuns, upsertPipelineRun } from '@/lib/server/storage'
 import { notify } from '@/lib/server/ws-hub'
 import { genId } from '@/lib/id'
+import { createPipelineWorkspace } from '@/lib/server/pipeline-executor'
 import type { Pipeline, PipelineRun } from '@/types'
 
 export async function POST(
@@ -24,15 +25,20 @@ export async function POST(
     const runId = genId()
     const now = Date.now()
 
+    // Create workspace directory for this run
+    const workspaceDir = createPipelineWorkspace(runId, pipeline.id, pipeline.name)
+
     const run: PipelineRun = {
       id: runId,
       pipelineId: id,
       projectId: projectId || pipeline.projectId || null,
       status: 'pending',
+      workspaceDir,
       stages: pipeline.stages.map(stage => ({
         stageId: stage.id,
         status: 'pending',
         sessionId: null,
+        workspaceDir: null,
         tasks: stage.tasks.map(task => ({
           taskId: task.id,
           status: 'pending',

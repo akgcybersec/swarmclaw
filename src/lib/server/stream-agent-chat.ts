@@ -475,15 +475,29 @@ export async function streamAgentChat(opts: StreamAgentChatOpts): Promise<Stream
     )
   }
 
-  stateModifierParts.push(
-    buildAgenticExecutionPolicy({
-      enabledTools: sessionToolsWithImplicitProcess,
-      loopMode: runtime.loopMode,
-      heartbeatPrompt,
-      heartbeatIntervalSec,
-      platformAssignScope: agentPlatformAssignScope,
-    }),
-  )
+  const isPipelineSessionForPolicy = (session as any).sessionType === 'pipeline'
+  if (isPipelineSessionForPolicy) {
+    stateModifierParts.push([
+      '## Pipeline Execution Mode',
+      'You are executing a single bounded task as part of an automated pipeline.',
+      '- Complete ONLY what the task asks. Do not explore, expand scope, or do follow-up work.',
+      '- Use the minimum number of tool calls needed to accomplish the task.',
+      '- As soon as the task is done, call manage_tasks to mark it complete. Do not wait.',
+      '- Do not create schedules, spin up agents, or plan future work.',
+      '- Do not ask clarifying questions — proceed with reasonable assumptions.',
+      '- After calling manage_tasks, stop. Your session will be cleaned up automatically.',
+    ].join('\n'))
+  } else {
+    stateModifierParts.push(
+      buildAgenticExecutionPolicy({
+        enabledTools: sessionToolsWithImplicitProcess,
+        loopMode: runtime.loopMode,
+        heartbeatPrompt,
+        heartbeatIntervalSec,
+        platformAssignScope: agentPlatformAssignScope,
+      }),
+    )
+  }
 
   const stateModifier = stateModifierParts.join('\n\n')
 
@@ -494,8 +508,9 @@ export async function streamAgentChat(opts: StreamAgentChatOpts): Promise<Stream
     mcpServerIds: agentMcpServerIds,
     mcpDisabledTools: agentMcpDisabledTools,
   })
+  const isPipelineSession = (session as any).sessionType === 'pipeline'
+  const recursionLimit = isPipelineSession ? 50 : getAgentLoopRecursionLimit(runtime)
   const agent = createReactAgent({ llm, tools, stateModifier })
-  const recursionLimit = getAgentLoopRecursionLimit(runtime)
   console.log(`[stream-agent-chat] Using recursionLimit: ${recursionLimit} for session ${session.id}`)
 
   // Build message history for context
@@ -809,6 +824,13 @@ export async function streamAgentChat(opts: StreamAgentChatOpts): Promise<Stream
   const toolCallBlockRe = /<tool_call>[\s\S]*?<\/tool_call>/g
   if (toolCallBlockRe.test(fullText)) {
     fullText = fullText.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '').replace(/\n{3,}/g, '\n\n').trim()
+    write(`data: ${JSON.stringify({ t: 'r', text: fullText })}\n\n`)
+  }
+
+  // Strip MiniMax-format tool call syntax: minimax:tool_call <invoke name="...">...</invoke> [</minimax:tool_call>]
+  const minimaxToolCallRe = /minimax:tool_call\s*<invoke[^>]*>[\s\S]*?<\/invoke>\s*(?:<\/minimax:tool_call>)?/g
+  if (minimaxToolCallRe.test(fullText)) {
+    fullText = fullText.replace(/minimax:tool_call\s*<invoke[^>]*>[\s\S]*?<\/invoke>\s*(?:<\/minimax:tool_call>)?/g, '').replace(/\n{3,}/g, '\n\n').trim()
     write(`data: ${JSON.stringify({ t: 'r', text: fullText })}\n\n`)
   }
 

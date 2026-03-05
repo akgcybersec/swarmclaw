@@ -19,6 +19,13 @@ export async function POST(req: Request) {
   const isDir = fs.statSync(resolved).isDirectory()
   const platform = process.platform
 
+  // Check if running in headless environment (Linux without DISPLAY)
+  if (platform === 'linux' && !process.env.DISPLAY) {
+    return NextResponse.json({ 
+      error: 'Cannot open files in headless environment. Use the "Open" button to view the file in your browser instead.' 
+    }, { status: 400 })
+  }
+
   // Determine the command to reveal in the OS file manager
   let cmd: string
   if (platform === 'darwin') {

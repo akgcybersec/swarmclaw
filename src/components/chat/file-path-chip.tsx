@@ -11,7 +11,15 @@ const SERVEABLE_EXT = /\.(html?|svg|css|js|jsx|ts|tsx)$/i
 export function FilePathChip({ filePath }: { filePath: string }) {
   const canPreview = PREVIEWABLE_EXT.test(filePath)
   const canServe = SERVEABLE_EXT.test(filePath)
-  const serveUrl = `/api/files/serve?path=${encodeURIComponent(filePath)}`
+  const [serveUrl, setServeUrl] = useState<string | null>(null)
+
+  // Generate a secure signed URL when component mounts
+  useEffect(() => {
+    if (!canPreview) return
+    api<{ url: string }>('POST', '/files/serve-url', { path: filePath })
+      .then((res) => setServeUrl(res.url))
+      .catch(() => { /* ignore */ })
+  }, [filePath, canPreview])
 
   const [serverState, setServerState] = useState<{
     running: boolean; url?: string; loading: boolean; type?: string; framework?: string
@@ -77,7 +85,7 @@ export function FilePathChip({ filePath }: { filePath: string }) {
         </svg>
         {isDir ? 'Open' : 'Reveal'}
       </button>
-      {canPreview && !serverState.running && (
+      {canPreview && !serverState.running && serveUrl && (
         <a
           href={serveUrl}
           target="_blank"

@@ -79,6 +79,16 @@ export function PipelineEditor({ pipeline, onSave, onCancel }: PipelineEditorPro
   }
 
   const handleSave = () => {
+    // Validate all tasks have prompts
+    for (const stage of stages) {
+      for (const task of stage.tasks) {
+        if (!task.prompt?.trim()) {
+          alert('Each task must have a prompt. Please fill in all task prompts before saving.')
+          return
+        }
+      }
+    }
+
     onSave({
       name,
       description,

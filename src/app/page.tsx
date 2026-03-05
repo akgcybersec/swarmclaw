@@ -215,7 +215,7 @@ export default function Home() {
   // or falls back to defaultAgentId from settings, then first agent.
   const [agentReady, setAgentReady] = useState(false)
   useEffect(() => {
-    if (!authenticated || !currentUser) return
+    if (!authenticated) return
     let cancelled = false
     ;(async () => {
       try {
@@ -238,7 +238,7 @@ export default function Home() {
       if (!cancelled) setAgentReady(true)
     })()
     return () => { cancelled = true }
-  }, [authenticated, currentUser])
+  }, [authenticated])
 
   // Check if first-run setup is needed
   useEffect(() => {

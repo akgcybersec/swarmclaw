@@ -1033,6 +1033,7 @@ export interface PipelineStage {
   tasks: PipelineStageTask[]       // ordered list of tasks for this agent
   dependsOn: string[]              // stage IDs that must complete first (DAG)
   order: number                    // visual ordering hint
+  useAssetsFrom?: string[]         // stage IDs whose workspace files are made available to this stage
 }
 
 export interface PipelineNotifySettings {
@@ -1072,6 +1073,7 @@ export interface PipelineRunStage {
   stageId: string
   status: PipelineStageStatus
   sessionId?: string | null
+  workspaceDir?: string | null      // absolute path to this stage's workspace directory
   tasks: PipelineRunTask[]         // mirrors stage tasks with runtime state
   startedAt?: number | null
   completedAt?: number | null
@@ -1085,6 +1087,7 @@ export interface PipelineRun {
   stages: PipelineRunStage[]
   // When paused due to failure — which task is awaiting intervention
   pausedAt?: { stageId: string; taskId: string } | null
+  workspaceDir?: string | null      // absolute path to this run's workspace directory
   createdAt: number
   updatedAt: number
   completedAt?: number | null

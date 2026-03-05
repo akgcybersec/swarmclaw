@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
         ...stage,
         id: stage.id || genId(),
         order: index,
+        useAssetsFrom: Array.isArray(stage.useAssetsFrom) ? stage.useAssetsFrom : [],
         tasks: stage.tasks.map((task: any, taskIndex: number) => ({
           ...task,
           id: task.id || genId(),

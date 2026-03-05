@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { loadPipelines, upsertPipeline, deletePipeline } from '@/lib/server/storage'
+import { loadPipelines, upsertPipeline, deletePipeline, loadPipelineRuns, deletePipelineRun } from '@/lib/server/storage'
 import { notify } from '@/lib/server/ws-hub'
 import { genId } from '@/lib/id'
-import type { Pipeline } from '@/types'
+import { deletePipelineFolderWorkspace } from '@/lib/server/pipeline-executor'
+import type { Pipeline, PipelineRun } from '@/types'
 
 export async function GET(
   request: NextRequest,
@@ -89,6 +90,7 @@ export async function PUT(
         ...stage,
         id: stage.id || existing.stages[index]?.id || genId(),
         order: index,
+        useAssetsFrom: Array.isArray(stage.useAssetsFrom) ? stage.useAssetsFrom : [],
         tasks: stage.tasks.map((task: any, taskIndex: number) => ({
           ...task,
           id: task.id || existing.stages[index]?.tasks[taskIndex]?.id || genId(),
@@ -117,11 +119,21 @@ export async function DELETE(
   try {
     const { id } = await params
     const pipelines = loadPipelines()
-    const existing = pipelines[id]
+    const existing = pipelines[id] as Pipeline | undefined
 
     if (!existing) {
       return NextResponse.json({ error: 'Pipeline not found' }, { status: 404 })
     }
+
+    // Delete all run records and the pipeline workspace folder
+    const allRuns = loadPipelineRuns()
+    for (const run of Object.values(allRuns) as PipelineRun[]) {
+      if (run.pipelineId === id) {
+        deletePipelineRun(run.id)
+      }
+    }
+    notify('pipeline-runs')
+    deletePipelineFolderWorkspace(id, existing.name)
 
     deletePipeline(id)
     notify('pipelines')

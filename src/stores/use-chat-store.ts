@@ -302,7 +302,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
       } else if (event.t === 'r') {
         fullText = event.text || ''
-        set({ streamText: fullText })
+        set({ streamText: fullText, displayText: fullText })
       } else if (event.t === 'tool_call') {
         const id = `tc-${++toolCallCounter}`
         set((s) => ({
