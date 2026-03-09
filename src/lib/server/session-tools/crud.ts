@@ -15,9 +15,17 @@ import {
   loadWebhooks, saveWebhooks,
   loadSecrets, saveSecrets,
   loadSessions, saveSessions,
+  loadPipelines, upsertPipeline, deletePipeline,
   encryptKey,
   decryptKey,
 } from '../storage'
+
+// Wrapper for pipeline save compatibility with PLATFORM_RESOURCES
+function savePipelines(pipelines: Record<string, any>) {
+  for (const [id, pipeline] of Object.entries(pipelines)) {
+    upsertPipeline(id, pipeline)
+  }
+}
 import { resolveScheduleName } from '@/lib/schedule-name'
 import { findDuplicateSchedule, type ScheduleLike } from '@/lib/schedule-dedupe'
 import { computeTaskFingerprint, findDuplicateTask } from '@/lib/task-dedupe'
@@ -187,6 +195,7 @@ const PLATFORM_RESOURCES: Record<string, {
   manage_webhooks: { toolId: 'manage_webhooks', label: 'webhooks', load: loadWebhooks, save: saveWebhooks },
   manage_sessions: { toolId: 'manage_sessions', label: 'sessions', load: loadSessions, save: saveSessions, readOnly: true },
   manage_secrets: { toolId: 'manage_secrets', label: 'secrets', load: loadSecrets, save: saveSecrets },
+  manage_pipelines: { toolId: 'manage_pipelines', label: 'pipelines', load: loadPipelines, save: savePipelines },
 }
 
 // ---------------------------------------------------------------------------
@@ -232,6 +241,8 @@ export function buildCrudTools(bctx: ToolBuildContext): StructuredToolInterface[
       }
     } else if (toolKey === 'manage_webhooks') {
       description += '\n\nUse `source`, `events`, `agentId`, and `secret` when creating webhooks. Inbound calls should POST to `/api/webhooks/{id}` with header `x-webhook-secret` when a secret is configured.'
+    } else if (toolKey === 'manage_pipelines') {
+      description += `\n\nCreate multi-agent workflows with stages and tasks. Required fields: name, description, stages (array). Each stage needs: agentId, label, tasks (array). Each task needs: label, prompt, order. Optional: failurePolicy (continue/pause/abort), notifySettings. To run a pipeline, use the pipeline run API or create a task that triggers it. Stages execute in dependency order; tasks execute sequentially within stages. Use "useAssetsFrom" to pass files between stages.` + agentSummary
     }
 
     tools.push(
@@ -367,6 +378,8 @@ export function buildCrudTools(bctx: ToolBuildContext): StructuredToolInterface[
               const entry = {
                 id: newId,
                 ...parsed,
+                // Default to queued status for tasks if not specified
+                ...(toolKey === 'manage_tasks' && !parsed.status ? { status: 'queued' } : {}),
                 createdByAgentId: ctx?.agentId || null,
                 createdInSessionId: ctx?.sessionId || null,
                 createdAt: now,
@@ -506,6 +519,18 @@ export function buildCrudTools(bctx: ToolBuildContext): StructuredToolInterface[
               if (!all[id]) return `Not found: ${res.label} "${id}"`
               if (toolKey === 'manage_secrets' && !canAccessSecret(all[id])) {
                 return 'Error: you do not have access to this secret.'
+              }
+              if (toolKey === 'manage_pipelines') {
+                // Delete all runs and workspace for this pipeline
+                const { loadPipelineRuns, deletePipelineRun } = await import('../storage')
+                const { deletePipelineFolderWorkspace } = await import('../pipeline-executor')
+                const runs = loadPipelineRuns()
+                for (const run of Object.values(runs) as any[]) {
+                  if (run.pipelineId === id) {
+                    deletePipelineRun(run.id)
+                  }
+                }
+                deletePipelineFolderWorkspace(id, all[id].name)
               }
               delete all[id]
               res.save(all)

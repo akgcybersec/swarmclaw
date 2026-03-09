@@ -88,12 +88,12 @@ export async function PUT(
       projectId: projectId || null,
       stages: stages.map((stage: any, index: number) => ({
         ...stage,
-        id: stage.id || existing.stages[index]?.id || genId(),
+        id: stage.id || existing.stages[index]?.id || genId(), // Ensure ID always exists
         order: index,
         useAssetsFrom: Array.isArray(stage.useAssetsFrom) ? stage.useAssetsFrom : [],
         tasks: stage.tasks.map((task: any, taskIndex: number) => ({
           ...task,
-          id: task.id || existing.stages[index]?.tasks[taskIndex]?.id || genId(),
+          id: task.id || existing.stages[index]?.tasks[taskIndex]?.id || genId(), // Ensure ID always exists
           order: taskIndex
         }))
       })),

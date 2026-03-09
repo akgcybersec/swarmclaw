@@ -109,7 +109,7 @@ export function StageArtifactsPanel({ runId, stageId, stageName, onClose }: Prop
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex">
+    <div className="fixed inset-y-0 right-0 z-[60] flex">
       {/* Overlay */}
       <div className="fixed inset-0 bg-black/40" onClick={onClose} />
 

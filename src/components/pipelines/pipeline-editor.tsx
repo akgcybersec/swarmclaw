@@ -15,7 +15,15 @@ export function PipelineEditor({ pipeline, onSave, onCancel }: PipelineEditorPro
   const [name, setName] = useState(pipeline.name)
   const [description, setDescription] = useState(pipeline.description)
   const [stages, setStages] = useState<PipelineStage[]>(pipeline.stages)
-  const [failurePolicy, setFailurePolicy] = useState(pipeline.failurePolicy)
+  const [failurePolicy, setFailurePolicy] = useState(pipeline.failurePolicy || 'pause')
+  const [notifySettings] = useState(pipeline.notifySettings || {
+    onTaskComplete: false,
+    onStageComplete: true,
+    onRunComplete: true,
+    onFailure: true,
+    channels: ['app'],
+    connectorId: null
+  })
 
   const addStage = () => {
     const newStage: PipelineStage = {
@@ -83,7 +91,7 @@ export function PipelineEditor({ pipeline, onSave, onCancel }: PipelineEditorPro
     for (const stage of stages) {
       for (const task of stage.tasks) {
         if (!task.prompt?.trim()) {
-          alert('Each task must have a prompt. Please fill in all task prompts before saving.')
+          alert(`Task "${task.label}" in stage "${stage.label}" must have a prompt`)
           return
         }
       }
@@ -101,7 +109,7 @@ export function PipelineEditor({ pipeline, onSave, onCancel }: PipelineEditorPro
         }))
       })),
       failurePolicy,
-      notifySettings: pipeline.notifySettings,
+      notifySettings,
       projectId: pipeline.projectId
     })
   }

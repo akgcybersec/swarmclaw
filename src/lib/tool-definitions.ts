@@ -37,6 +37,7 @@ export const PLATFORM_TOOLS: ToolDefinition[] = [
   { id: 'manage_connectors', label: 'Connectors', description: 'Create, edit, and delete connectors' },
   { id: 'manage_sessions', label: 'Chats', description: 'List chats, send messages, and spawn agent work' },
   { id: 'manage_secrets', label: 'Secrets', description: 'Store and retrieve encrypted service secrets' },
+  { id: 'manage_pipelines', label: 'Pipelines', description: 'Create, edit, and delete multi-agent workflows' },
 ]
 
 export const ALL_TOOLS: ToolDefinition[] = [...AVAILABLE_TOOLS, ...PLATFORM_TOOLS]

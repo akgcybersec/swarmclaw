@@ -163,6 +163,7 @@ export const STARTER_AGENT_TOOLS = [
   'manage_secrets',
   'manage_documents',
   'manage_webhooks',
+  'manage_pipelines',
   'claude_code',
   'codex_cli',
   'opencode_cli',

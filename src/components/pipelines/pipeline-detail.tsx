@@ -469,7 +469,7 @@ export function PipelineDetail({ pipelineId, onDeleted }: PipelineDetailProps) {
                               const taskDef = taskMap[rt.taskId]
                               const boardTaskId = (rt as any).boardTaskId
                               return (
-                                <div key={rt.taskId} className="px-4 py-3">
+                                <div key={rt.taskId} className="px-4 py-3 relative">
                                   <div className="flex items-center gap-3">
                                     <span className="text-[11px] text-text-3 w-4 text-right flex-shrink-0">{taskIdx + 1}</span>
                                     <div className="flex-1 min-w-0">

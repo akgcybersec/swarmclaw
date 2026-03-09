@@ -205,13 +205,12 @@ export async function executePipelineRun(runId: string): Promise<void> {
     const sortedStages = [...pipeline.stages].sort((a, b) => a.order - b.order)
 
     for (const [stageIdx, stage] of sortedStages.entries()) {
-      console.log(`[pipeline-executor] Processing stage "${stage.label}"`)
-      const runStage = run.stages.find((rs: PipelineRunStage) => rs.stageId === stage.id)
+      const runStage = run.stages[stageIdx] // Use index instead of ID
       if (!runStage) continue
 
       // Start stage
       patchRun(runId, r => {
-        const rs = r.stages.find(s => s.stageId === stage.id)
+        const rs = r.stages[stageIdx] // Use index instead of ID
         if (rs) { rs.status = 'running'; rs.startedAt = Date.now() }
       })
 
@@ -219,7 +218,7 @@ export async function executePipelineRun(runId: string): Promise<void> {
       const runWorkspaceDir = run.workspaceDir ?? createPipelineWorkspace(runId, pipeline.id, pipeline.name)
       const stageWorkspaceDir = createStageWorkspace(runWorkspaceDir, stageIdx + 1, stage.label)
       patchRun(runId, r => {
-        const rs = r.stages.find(s => s.stageId === stage.id)
+        const rs = r.stages[stageIdx] // Use index instead of ID
         if (rs) rs.workspaceDir = stageWorkspaceDir
       })
 
@@ -228,12 +227,12 @@ export async function executePipelineRun(runId: string): Promise<void> {
       try {
         sessionId = createFreshPipelineSession(stage.agentId, runId, stage.label)
         patchRun(runId, r => {
-          const rs = r.stages.find(s => s.stageId === stage.id)
+          const rs = r.stages[stageIdx] // Use index instead of ID
           if (rs) rs.sessionId = sessionId
         })
       } catch (err: any) {
         patchRun(runId, r => {
-          const rs = r.stages.find(s => s.stageId === stage.id)
+          const rs = r.stages[stageIdx] // Use index instead of ID
           if (rs) { rs.status = 'failed'; (rs as any).error = err.message }
         })
         if (pipeline.failurePolicy === 'abort') {
@@ -246,7 +245,7 @@ export async function executePipelineRun(runId: string): Promise<void> {
       const sortedTasks = [...stage.tasks].sort((a, b) => a.order - b.order)
       let stageFailed = false
 
-      for (const task of sortedTasks) {
+      for (const [taskIndex, task] of sortedTasks.entries()) {
         // Check if pipeline was cancelled
         const currentRun = loadPipelineRuns()[runId] as PipelineRun | undefined
         if (currentRun?.status === 'cancelled') {
@@ -257,8 +256,8 @@ export async function executePipelineRun(runId: string): Promise<void> {
 
         if (!task.prompt?.trim()) {
           patchRun(runId, r => {
-            const rs = r.stages.find(s => s.stageId === stage.id)
-            const rt = rs?.tasks.find((t: PipelineRunTask) => t.taskId === task.id)
+            const rs = r.stages[stageIdx] // Use index instead of ID
+            const rt = rs?.tasks[taskIndex] // Use index instead of ID
             if (rt) { rt.status = 'skipped'; rt.completedAt = Date.now() }
           })
           continue
@@ -284,8 +283,8 @@ export async function executePipelineRun(runId: string): Promise<void> {
 
         // Store boardTaskId in pipeline run task
         patchRun(runId, r => {
-          const rs = r.stages.find(s => s.stageId === stage.id)
-          const rt = rs?.tasks.find((t: PipelineRunTask) => t.taskId === task.id)
+          const rs = r.stages[stageIdx] // Use index instead of ID
+          const rt = rs?.tasks[taskIndex] // Use index instead of ID
           if (rt) {
             rt.status = 'running'
             rt.startedAt = Date.now()
@@ -366,16 +365,16 @@ export async function executePipelineRun(runId: string): Promise<void> {
 
             // Check for completion/failure first before sending status checks
             if (currentTask.status === 'completed') {
-              console.log(`[pipeline-executor] Task ${boardTaskId} completed`)
               patchRun(runId, r => {
-                const rs = r.stages.find(s => s.stageId === stage.id)
-                const rt = rs?.tasks.find((t: PipelineRunTask) => t.taskId === task.id)
+                const rs = r.stages[stageIdx] // Use stageIdx instead of ID
+                const rt = rs?.tasks[taskIndex] // Match by index instead of ID
                 if (rt) {
                   rt.status = 'completed'
                   rt.result = currentTask.result || ''
                   rt.completedAt = Date.now()
                 }
               })
+              notify('pipeline-runs')
               break
             } else if (currentTask.status === 'failed') {
               throw new Error(currentTask.error || 'Task failed')
@@ -398,14 +397,14 @@ export async function executePipelineRun(runId: string): Promise<void> {
         } catch (err: any) {
           stageFailed = true
           patchRun(runId, r => {
-            const rs = r.stages.find(s => s.stageId === stage.id)
-            const rt = rs?.tasks.find((t: PipelineRunTask) => t.taskId === task.id)
+            const rs = r.stages[stageIdx] // Use stageIdx instead of ID
+            const rt = rs?.tasks[taskIndex] // Use index instead of ID
             if (rt) { rt.status = 'failed'; rt.error = err.message; rt.completedAt = Date.now() }
           })
 
           if (pipeline.failurePolicy === 'abort') {
             patchRun(runId, r => {
-              const rs = r.stages.find(s => s.stageId === stage.id)
+              const rs = r.stages[stageIdx] // Use stageIdx instead of ID
               if (rs) { rs.status = 'failed'; rs.completedAt = Date.now() }
               r.status = 'failed'
             })
@@ -413,10 +412,10 @@ export async function executePipelineRun(runId: string): Promise<void> {
             return
           } else if (pipeline.failurePolicy === 'pause') {
             patchRun(runId, r => {
-              const rs = r.stages.find(s => s.stageId === stage.id)
+              const rs = r.stages[stageIdx] // Use stageIdx instead of ID
               if (rs) { rs.status = 'failed'; rs.completedAt = Date.now() }
               r.status = 'paused'
-              r.pausedAt = { stageId: stage.id, taskId: task.id }
+              r.pausedAt = { stageId: stage.id, taskId: task.id || `task-${taskIndex}` } // Fallback for undefined task.id
             })
             purgePipelineSession(sessionId)
             return
@@ -427,12 +426,13 @@ export async function executePipelineRun(runId: string): Promise<void> {
 
       // Complete stage
       patchRun(runId, r => {
-        const rs = r.stages.find(s => s.stageId === stage.id)
+        const rs = r.stages[stageIdx] // Use stageIdx instead of ID
         if (rs) {
           rs.status = stageFailed ? 'failed' : 'completed'
           rs.completedAt = Date.now()
         }
       })
+      notify('pipeline-runs')
 
       // Purge the dedicated session — it served its purpose
       purgePipelineSession(sessionId)
