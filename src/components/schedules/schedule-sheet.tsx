@@ -194,7 +194,7 @@ export function ScheduleSheet() {
   }
 
   // Step validation
-  const step0Valid = name.trim().length > 0 && agentId.length > 0 && taskPrompt.trim().length > 0
+  const step0Valid = name.trim().length > 0 && (agentId || '').length > 0 && taskPrompt.trim().length > 0
   const step1Valid = scheduleType === 'cron' ? cron.trim().length > 0 : intervalMs > 0
 
   const selectedAgent = agentId ? agents[agentId] : null

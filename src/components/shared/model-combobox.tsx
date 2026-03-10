@@ -27,12 +27,13 @@ export function ModelCombobox({
   const containerRef = useRef<HTMLDivElement>(null)
   const loadProviders = useAppStore((s) => s.loadProviders)
 
+  const safeModels = models || []
   const filtered = query
-    ? models.filter((m) => m.toLowerCase().includes(query.toLowerCase()))
-    : models
+    ? safeModels.filter((m) => m.toLowerCase().includes(query.toLowerCase()))
+    : safeModels
 
   const isCustom = (m: string) => defaultModels.length > 0 && !defaultModels.includes(m)
-  const showAdd = query && !models.some((m) => m.toLowerCase() === query.toLowerCase())
+  const showAdd = query && !safeModels.some((m) => m.toLowerCase() === query.toLowerCase())
 
   const persistModels = useCallback(async (next: string[]) => {
     await api('PUT', `/providers/${providerId}/models`, { models: next })
@@ -40,16 +41,16 @@ export function ModelCombobox({
   }, [providerId, loadProviders])
 
   const addModel = useCallback(async (name: string) => {
-    const next = [...models, name]
+    const next = [...safeModels, name]
     await persistModels(next)
     onChange(name)
     setQuery('')
     setOpen(false)
-  }, [models, persistModels, onChange])
+  }, [safeModels, persistModels, onChange])
 
   const removeModel = useCallback(async (name: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    const next = models.filter((m) => m !== name)
+    const next = safeModels.filter((m) => m !== name)
     if (value === name) onChange(next[0] || '')
     if (next.length === defaultModels.length && next.every((m) => defaultModels.includes(m))) {
       await api('DELETE', `/providers/${providerId}/models`)
@@ -57,7 +58,7 @@ export function ModelCombobox({
       await persistModels(next)
     }
     await loadProviders()
-  }, [models, defaultModels, value, onChange, providerId, persistModels, loadProviders])
+  }, [safeModels, defaultModels, value, onChange, providerId, persistModels, loadProviders])
 
   const selectModel = useCallback((m: string) => {
     onChange(m)

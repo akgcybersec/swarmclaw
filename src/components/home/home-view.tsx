@@ -423,7 +423,7 @@ export function HomeView() {
             <div className="flex flex-col gap-1">
               {recentChats.map((session) => {
                 const agent = session.agentId ? agents[session.agentId] : null
-                const lastMsg = session.messages?.[session.messages.length - 1]
+                const lastMsg = session.messages && session.messages.length > 0 ? session.messages[session.messages.length - 1] : null
                 const displayName = agent?.name || 'Chat'
                 return (
                   <button

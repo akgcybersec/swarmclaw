@@ -29,7 +29,8 @@ export function ScheduleList({ inSidebar }: Props) {
   useEffect(() => { loadSchedules() }, [])
 
   const filtered = useMemo(() => {
-    return Object.values(schedules)
+    const schedulesList = schedules ? Object.values(schedules) : []
+    return schedulesList
       .filter((s) => {
         if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
         if (activeProjectFilter && s.projectId !== activeProjectFilter) return false

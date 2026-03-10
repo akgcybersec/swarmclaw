@@ -54,6 +54,7 @@ async function checkOpenAiCompatible(
   apiKey: string,
   endpointRaw: string,
   defaultEndpoint: string,
+  selectedModel?: string,
 ): Promise<{ ok: boolean; message: string; normalizedEndpoint: string }> {
   const normalizedEndpoint = (endpointRaw || defaultEndpoint).replace(/\/+$/, '')
   const res = await fetch(`${normalizedEndpoint}/models`, {
@@ -68,7 +69,27 @@ async function checkOpenAiCompatible(
     return { ok: false, message: detail, normalizedEndpoint }
   }
   const payload = await res.json().catch(() => ({} as any))
-  const count = Array.isArray(payload?.data) ? payload.data.length : 0
+  const models = Array.isArray(payload?.data) ? payload.data : []
+  const count = models.length
+
+  // Validate that the selected model exists in the provider's model list
+  if (selectedModel && count > 0) {
+    const modelIds: string[] = models.map((m: any) => typeof m === 'string' ? m : m?.id).filter(Boolean)
+    const modelExists = modelIds.some((id: string) => id === selectedModel)
+    if (!modelExists) {
+      return {
+        ok: false,
+        message: `Connected to ${providerName}, but model "${selectedModel}" was not found. Please select a valid model.`,
+        normalizedEndpoint,
+      }
+    }
+    return {
+      ok: true,
+      message: `Connected to ${providerName}. Model "${selectedModel}" verified.`,
+      normalizedEndpoint,
+    }
+  }
+
   return {
     ok: true,
     message: count > 0 ? `Connected to ${providerName}. ${count} model(s) available.` : `Connected to ${providerName}.`,
@@ -185,7 +206,7 @@ export async function POST(req: Request) {
       case 'openai': {
         if (!apiKey) return NextResponse.json({ ok: false, message: 'OpenAI API key is required.' })
         const info = OPENAI_COMPATIBLE_DEFAULTS.openai
-        const result = await checkOpenAiCompatible(info.name, apiKey, endpoint, info.defaultEndpoint)
+        const result = await checkOpenAiCompatible(info.name, apiKey, endpoint, info.defaultEndpoint, model)
         return NextResponse.json(result)
       }
       case 'anthropic': {
@@ -203,7 +224,7 @@ export async function POST(req: Request) {
       case 'fireworks': {
         const info = OPENAI_COMPATIBLE_DEFAULTS[provider]
         if (!apiKey) return NextResponse.json({ ok: false, message: `${info.name} API key is required.` })
-        const result = await checkOpenAiCompatible(info.name, apiKey, endpoint, info.defaultEndpoint)
+        const result = await checkOpenAiCompatible(info.name, apiKey, endpoint, info.defaultEndpoint, model)
         return NextResponse.json(result)
       }
       case 'ollama': {
@@ -222,7 +243,7 @@ export async function POST(req: Request) {
           if (custom.requiresApiKey && !apiKey) {
             return NextResponse.json({ ok: false, message: `${custom.name} API key is required.` })
           }
-          const result = await checkOpenAiCompatible(custom.name, apiKey, endpoint, custom.baseUrl)
+          const result = await checkOpenAiCompatible(custom.name, apiKey, endpoint, custom.baseUrl, model)
           return NextResponse.json(result)
         }
         return NextResponse.json({ ok: false, message: `Unsupported provider: ${provider}` }, { status: 400 })

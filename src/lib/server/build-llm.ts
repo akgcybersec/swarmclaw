@@ -69,6 +69,13 @@ export function buildChatModel(opts: {
     if (provider === 'openclaw') {
       config.configuration.defaultHeaders = { 'Content-Type': 'text/plain' }
     }
+    // OpenRouter requires HTTP-Referer and X-Title for proper model routing
+    if (provider === 'openrouter') {
+      config.configuration.defaultHeaders = {
+        'HTTP-Referer': 'https://swarmclaw.app',
+        'X-Title': 'SwarmClaw',
+      }
+    }
   }
   return config.configuration
     ? new ChatOpenAI(config)
