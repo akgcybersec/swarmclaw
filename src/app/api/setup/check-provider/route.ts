@@ -7,6 +7,7 @@ type SetupProvider =
   | 'openai'
   | 'anthropic'
   | 'google'
+  | 'openrouter'
   | 'deepseek'
   | 'groq'
   | 'together'
@@ -193,6 +194,7 @@ export async function POST(req: Request) {
         return NextResponse.json(result)
       }
       case 'google':
+      case 'openrouter':
       case 'deepseek':
       case 'groq':
       case 'together':

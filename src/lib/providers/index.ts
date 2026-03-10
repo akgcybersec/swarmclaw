@@ -105,6 +105,23 @@ const PROVIDERS: Record<string, BuiltinProviderConfig> = {
       },
     },
   },
+  openrouter: {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    models: [], // Empty array - models fetched dynamically from API
+    requiresApiKey: true,
+    requiresEndpoint: false,
+    defaultEndpoint: 'https://openrouter.ai/api/v1',
+    handler: {
+      streamChat: (opts) => {
+        const patchedSession = {
+          ...opts.session,
+          apiEndpoint: opts.session.apiEndpoint || 'https://openrouter.ai/api/v1',
+        }
+        return streamOpenAiChat({ ...opts, session: patchedSession })
+      },
+    },
+  },
   deepseek: {
     id: 'deepseek',
     name: 'DeepSeek',

@@ -7,6 +7,7 @@ export type SetupProvider =
   | 'anthropic'
   | 'openai'
   | 'google'
+  | 'openrouter'
   | 'deepseek'
   | 'groq'
   | 'together'
@@ -64,6 +65,17 @@ export const SETUP_PROVIDERS: SetupProviderOption[] = [
     keyLabel: 'aistudio.google.com',
     keyPlaceholder: 'AIza...',
     icon: 'G',
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    description: 'Access hundreds of models from multiple providers through a unified API.',
+    requiresKey: true,
+    supportsEndpoint: false,
+    keyUrl: 'https://openrouter.ai/keys',
+    keyLabel: 'openrouter.ai',
+    badge: 'Popular',
+    icon: 'R',
   },
   {
     id: 'deepseek',
@@ -217,6 +229,13 @@ export const DEFAULT_AGENTS: Record<SetupProvider, DefaultAgentConfig> = {
     description: 'A helpful Gemini-powered assistant.',
     systemPrompt: SWARMCLAW_ASSISTANT_PROMPT,
     model: 'gemini-2.5-pro',
+    tools: STARTER_AGENT_TOOLS,
+  },
+  openrouter: {
+    name: 'Router',
+    description: 'A versatile assistant with access to hundreds of models.',
+    systemPrompt: SWARMCLAW_ASSISTANT_PROMPT,
+    model: 'anthropic/claude-sonnet-4',
     tools: STARTER_AGENT_TOOLS,
   },
   deepseek: {
